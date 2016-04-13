@@ -82,32 +82,6 @@ class graphite::config_gunicorn inherits graphite::params {
     default: {
       fail("wsgi/gunicorn-based graphite is not supported on ${::operatingsystem} (only supported on Debian & RedHat)")
     }
-
-  }
-
-  # fix graphite's race condition on start
-  # if the exec fails, assume we're using a version of graphite that doesn't need it
-  if $graphite::gunicorn_workers > 1 {
-    file { '/tmp/fix-graphite-race-condition.py':
-      ensure => file,
-      source => 'puppet:///modules/graphite/fix-graphite-race-condition.py',
-      mode   => '0755',
-    }
-    exec { 'fix graphite race condition':
-      command     => 'python /tmp/fix-graphite-race-condition.py',
-      cwd         => $graphite::graphiteweb_webapp_dir_REAL,
-      environment => 'DJANGO_SETTINGS_MODULE=graphite.settings',
-      user        => $graphite::config::gr_web_user_REAL,
-      logoutput   => true,
-      group       => $graphite::config::gr_web_group_REAL,
-      returns     => [0, 1],
-      require     => [
-        File['/tmp/fix-graphite-race-condition.py'],
-        Exec['Initial django db creation'],
-        Service['carbon-cache'],
-      ],
-      before      => Package[$package_name],
-    }
   }
 
   # Only install gunicorn after graphite is ready to go
